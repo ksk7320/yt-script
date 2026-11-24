@@ -1,0 +1,90 @@
+// YT Ad Debug: 응답을 수정하지 않고 스폰서 라벨/pagead 위치(필드 경로)만 알림+로그로 출력
+const RE = /^(Sponsored|Sponsor|스폰서|광고|スポンサー|広告)(\s?[·•].*)?$/;
+const PG = [112, 97, 103, 101, 97, 100]; // "pagead"
+const url = ($request && $request.url) || "";
+const ep = (url.match(/\/v1\/([a-z_]+)/) || [])[1] || "?";
+const body = $response.bodyBytes || $response.body;
+const hits = [];
+const types = {};
+
+function rd(b, p) {
+  let k = 0, m = 1, c;
+  do {
+    if (p.i >= b.length) return -1;
+    c = b[p.i++];
+    k += (c & 127) * m;
+    m *= 128;
+  } while (c & 128 && m < 1e15);
+  return k;
+}
+
+function valid(b) {
+  const p = { i: 0 }, n = b.length;
+  if (n === 0) return false;
+  while (p.i < n) {
+    const t = rd(b, p);
+    if (t < 0) return false;
+    const f = Math.floor(t / 8), w = t % 8;
+    if (f < 1) return false;
+    if (w === 0) { if (rd(b, p) < 0) return false; }
+    else if (w === 1) p.i += 8;
+    else if (w === 5) p.i += 4;
+    else if (w === 2) { const l = rd(b, p); if (l < 0 || p.i + l > n) return false; p.i += l; }
+    else return false;
+    if (p.i > n) return false;
+  }
+  return p.i === n;
+}
+
+function hasPG(b) {
+  for (let i = 0; i <= b.length - 6; i++) {
+    let j = 0;
+    while (j < 6 && b[i + j] === PG[j]) j++;
+    if (j === 6) return true;
+  }
+  return false;
+}
+
+function walk(b, path, plain, depth) {
+  const p = { i: 0 }, cnt = {};
+  while (p.i < b.length) {
+    const t = rd(b, p), f = Math.floor(t / 8), w = t % 8;
+    cnt[f] = (cnt[f] || 0) + 1;
+    const here = path + (path ? ">" : "") + f + "[" + (cnt[f] - 1) + "]";
+    const hereP = plain + (plain ? ">" : "") + f;
+    if (depth < 4) types[hereP] = (types[hereP] || 0) + 1;
+    if (w === 0) rd(b, p);
+    else if (w === 1) p.i += 8;
+    else if (w === 5) p.i += 4;
+    else {
+      const l = rd(b, p), sub = b.subarray(p.i, p.i + l);
+      p.i += l;
+      if (l > 0 && l <= 64) {
+        try {
+          const s = new TextDecoder("utf-8", { fatal: true }).decode(sub).trim();
+          if (RE.test(s)) hits.push("LABEL(" + s + ") " + here);
+        } catch (e) {}
+      }
+      if (depth < 14 && l > 1 && valid(sub)) walk(sub, here, hereP, depth + 1);
+      else if (hasPG(sub)) hits.push("PAGEAD len=" + l + " " + here);
+    }
+  }
+}
+
+try {
+  if (body && body.length) {
+    walk(body, "", "", 0);
+    const summary = Object.entries(types).sort((a, b) => b[1] - a[1]).slice(0, 12)
+      .map(([k, v]) => k + " x" + v).join("\n");
+    console.log("[yt-ad-debug] " + ep + " bytes=" + body.length + " hits=" + hits.length +
+      "\n" + hits.join("\n") + "\n--- structure ---\n" + summary);
+    if (hits.length || ep === "browse") {
+      $notification.post("YT Ad Debug", ep + " hits=" + hits.length + " bytes=" + body.length,
+        hits.slice(0, 5).join("\n") || Object.entries(types).sort((a, b) => b[1] - a[1]).slice(0, 5)
+          .map(([k, v]) => k + " x" + v).join("\n"));
+    }
+  }
+} catch (e) {
+  console.log("[yt-ad-debug] error: " + e);
+}
+$done({});
