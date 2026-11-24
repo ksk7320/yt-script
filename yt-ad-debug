@@ -71,8 +71,13 @@ function walk(b, path, plain, depth) {
   }
 }
 
+if (ep === "browse") {
+  $notification.post("YT Ad Debug", "스크립트 실행됨", ep + " body=" + (body ? (typeof body) + " " + body.length : "없음"));
+}
 try {
-  if (body && body.length) {
+  if (typeof body === "string") {
+    $notification.post("YT Ad Debug", "body가 문자열임", "binary-body-mode가 적용 안 됨");
+  } else if (body && body.length) {
     walk(body, "", "", 0);
     const summary = Object.entries(types).sort((a, b) => b[1] - a[1]).slice(0, 12)
       .map(([k, v]) => k + " x" + v).join("\n");
@@ -86,5 +91,6 @@ try {
   }
 } catch (e) {
   console.log("[yt-ad-debug] error: " + e);
+  $notification.post("YT Ad Debug", "에러", String(e));
 }
 $done({});
