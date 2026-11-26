@@ -4,4 +4,155 @@
 function SpScan(b,d){if(d>8)return!1;let p=0,n=b.length;while(p<n){let k=0,s=0,c;do{if(p>=n)return!1;c=b[p++];k|=(c&127)<<s;s+=7}while(c&128&&s<35);let w=k&7;if(w===0){while(p<n&&b[p++]&128);}else if(w===1)p+=8;else if(w===5)p+=4;else if(w===2){let q=0;s=0;do{if(p>=n)return!1;c=b[p++];q|=(c&127)<<s;s+=7}while(c&128&&s<35);if(q<0||p+q>n)return!1;let sub=b.subarray(p,p+q);p+=q;if(q>0&&q<=64){try{let t=new TextDecoder("utf-8",{fatal:!0}).decode(sub);if(SP_RE.test(t.trim()))return!0}catch(e){}}if(q>2&&SpScan(sub,d+1))return!0}else return!1}return!1}
 function Sp(b){try{let r=SpScan(b,0);if(r)console.log("[sponsor-label] removed");return r}catch(e){return!1}}
 function Ir(l,e){let t=!1;return ce(l,"richItemContents",n=>{let i=n.richItemContents;if(!Array.isArray(i))return!1;for(let r=i.length-1;r>=0;r--)(Li(i[r],e)||Sp(te.toBinary(i[r])))&&(i.splice(r,1),t=!0)}),t}function SecAd(l){let ch=!1;ce(l,"sectionListSupportedRenderers",n=>{let a=n.sectionListSupportedRenderers;if(!Array.isArray(a))return!1;for(let i=a.length-1;i>=0;i--){let x=a[i];if(x.itemSectionRenderer||x.shelfRenderer||x.musicDescriptionShelfRenderer)continue;let b;try{b=rt.toBinary(x)}catch(e){continue}let nos=d.list(x).map(u=>u.no).join(","),pg=ni(b),lb=SpScan(b,0);console.log(`[sec] no=${nos} len=${b.length} pagead=${pg} label=${lb}`);if(pg||lb){a.splice(i,1);ch=!0}}});return ch}
-function Tr(l,{state:e}){let a=Ir(l,e.adCache),b=SecAd(l);return{bodyChanged:a||b,stateChanged:e.adCache.dirty}}function Ai(l,{params:e}){return Br(l,e.captionLang),{bodyChanged:!0,stateChanged:!1}}function Di(l){let e=!1,t=l.entries?.length??0;for(let n=t-1;n>=0;n--)l.entries[n].command?.reelWatchEndpoint?.adClientParams?.isAd&&(l.entries.splice(n,1),e=!0);return{bodyChanged:e,stateChanged:!1}}function $i(l,{params:e}){let t=["SPunlimited"];e.blockUpload&&t.push("FEuploads"),e.blockImmersive&&t.push("FEmusic_immersive"),e.blockShorts&&t.push("FEshorts");let n=!1;return ce(l,"rendererItems",i=>{for(let r=i.rendererItems.length-1;r>=0;r--){let c=i.rendererItems[r]?.iconRender?.browseId??i.rendererItems[r]?.labelRender?.browseId;c&&t.includes(c)&&(i.rendererItems.splice(r,1),n=!0)}}),{bodyChanged:n,stateChanged:!1}}function ji(l){return ce(l.settingItems,"categoryId",e=>{e.categoryId===10135&&e.subSettings.push(Re.create({settingBooleanRenderer:{itemId:0,enableServiceEndpoint:{setClientSettingEndpoint:{settingData:{clientSettingEnum:{item:151},boolValue:!0}}},disableServiceEndpoint:{setClientSettingEndpoint:{settingData:{clientSettingEnum:{item:151},boolValue:!1}}}}}))}),l.settingItems.push(_.create({backgroundPlayBackSettingRenderer:{backgroundPlayback:!0,download:!0,downloadQualitySelection:!0,smartDownload:!0,icon:{iconType:1093}}})),{bodyChanged:!0,stateChanged:!1}}function Vi(l,{params:e,state:t}){for(let n of l.contents)n.player&&Br(n.player,e.captionLang),n.next&&Ir(n.next,t.adCache);return{bodyChanged:l.contents.length>0,stateChanged:t.adCache.dirty}}function ri(l,{state:e,platformKey:t}){let n=l.responseContext?.globalConfigGroup?.hotConfigGroup?.mediaHotConfig?.onesieHotConfig;if(!n)return{bodyChanged:!1,stateChanged:!1};let i=n.clientKey,r=n.encryptKey;if(!i?.length||!r?.length)return console.log("\u5F02\u5E38\uFF1AhotConfig \u672A\u5305\u542B\u5B8C\u6574\u7684 onesie key"),{bodyChanged:!1,stateChanged:!1};let c=Q(i),o=Q(r),s=e.config[t];return s?.clientKey===c&&s?.encryptKey===o?{bodyChanged:!1,stateChanged:!1}:(e.config[t]={clientKey:c,encryptKey:o},{bodyChanged:!1,stateChanged:!0})}var Mi=[{path:"browse",msgType:qr,handler:Tr},{path:"next",msgType:re,handler:Tr},{path:"player",msgType:oe,handler:Ai},{path:"search",msgType:Yr,handler:Tr},{path:"reel_watch_sequence",msgType:zr,handler:Di},{path:"guide",msgType:Zr,handler:$i},{path:"get_setting",msgType:Qr,handler:ji},{path:"get_watch",msgType:ei,handler:Vi},{path:"config",msgType:kr,handler:ri},{path:"log_event",msgType:kr,handler:ri}];function ii(l){let e=Mi.find(r=>l.url.includes(r.path));if(!e)return null;if(l.bodyBytes==null)return{action:"exit",state:l.state,changed:!1};let t=e.msgType.fromBinary(l.bodyBytes),{bodyChanged:n,stateChanged:i}=e.handler(t,{params:l.params,state:l.state,platformKey:l.platformKey});return{action:n?"body":"exit",bodyBytes:n?e.msgType.toBinary(t):void 0,state:l.state,changed:i}}var uc=g(h(),1);var rc=g(h(),1);var ue=class{_times=new Map;name;isDebug;className;request;response;constructor(e,t,n){this.name=e??"",this.isDebug=n?.debug??!1,e&&this.debug(`${e} Start`),this.className=t??"",this.init()}static getInstance(e,t){let n="Surge";return typeof $loon<"u"?n="Loon":typeof $task<"u"&&(n="QuanX"),ue.instances[n]||(ue.instances[n]=ue.classNames[n](e,n,t)),ue.instances[n]}createProxy(e){return new Proxy(e,{get:this.getFn,set:this.setFn})}getFn(e,t,n){return e[t]}setFn(e,t,n,i){return e[t]=n,!0}getJSON(e,t={}){let n=this.getVal(e);return n?JSON.parse(n):t}setJSON(e,t){this.setVal(JSON.stringify(e),t)}msg(e=this.name,t="",n="",i){}debug(e){this.isDebug&&(typeof e=="object"&&(e=JSON.stringify(e)),console.log(e))}log(e){typeof e=="object"&&(e=JSON.stringify(e)),console.log(e)}timeStart(e){this._times.set(e,Date.now())}timeEnd(e){if(this._times.has(e)){let t=this._times.get(e)??0,n=Date.now()-t;this.debug(`${e}: ${n}ms`),this._times.delete(e)}else this.debug(`Timer with label ${e} does not exist.`)}exit(){$done({})}reject(){$done()}decodeParams(e){return e}},K=ue;pe(K,"instances",{}),pe(K,"classNames",{QuanX:(e,t,n)=>new je(e,t,n),Surge:(e,t,n)=>new we(e,t,n),Loon:(e,t,n)=>new Cr(e,t,n)});var Ve=class extends K{getFn(e,t,n){let i=Ve.clientAdapter[t]||t;return super.getFn(e,i,n)}setFn(e,t,n,i){let r=Ve.clientAdapter[t]||t;return super.setFn(e,r,n,i)}init(){try{this.request=this.createProxy($request),this.response=this.createProxy($response)}catch(e){this.debug(e.toString())}}getVal(e){return $persistentStore.read(e)}setVal(e,t){$persistentStore.write(e,t)}msg(e=this.name,t="",n="",i){let r={};i&&(r={action:{"open-url":i}}),$notification.post(e,t,n,r)}async fetch(e){return await new Promise((t,n)=>{let{method:i,body:r,bodyBytes:c,...o}=e,s=c??r,a=s instanceof Uint8Array;$httpClient[i.toLowerCase()]({...o,body:s,"binary-mode":a},(u,B,w)=>{u&&n(u);let b=a?"bodyBytes":"body";t({status:B.status??B.statusCode,headers:B.headers,[b]:w})})})}done(e){let t=e.response??e;t.bodyBytes&&(t.body=t.bodyBytes,delete t.bodyBytes),$done(e.response?{response:t}:t)}decodeParams(e){return typeof $argument=="string"&&!$argument.includes("{{{")&&Object.assign(e,JSON.parse($argument)),e}},we=Ve;pe(we,"clientAdapter",{bodyBytes:"body"});var G=class extends K{static transferBodyBytes(e,t){return e instanceof ArrayBuffer?t==="Uint8Array"?new Uint8Array(e):e:e instanceof Uint8Array&&t==="ArrayBuffer"?e.buffer.slice(e.byteOffset,e.byteLength+e.byteOffset):e}init(){try{this.request=this.createProxy($request),this.response=this.createProxy($response)}catch(e){this.debug(e.toString())}}getFn(e,t,n){let i=G.clientAdapter[t]||t,r=super.getFn(e,i,n);return t==="bodyBytes"&&(r=G.transferBodyBytes(r,"Uint8Array")),r}setFn(e,t,n,i){let r=G.clientAdapter[t]||t,c=n;return t==="bodyBytes"&&(c=G.transferBodyBytes(c,"Uint8Array")),super.setFn(e,r,c,i)}getVal(e){return $prefs.valueForKey(e)}setVal(e,t){$prefs.setValueForKey(e,t)}msg(e=this.name,t="",n="",i){$notify(e,t,n,{"open-url":i??""})}async fetch(e){return await new Promise(t=>{let n={url:"",method:"GET"};for(let[i,r]of Object.entries(e))i==="id"?n.sessionIndex=r:i==="bodyBytes"?n.bodyBytes=G.transferBodyBytes(r,"ArrayBuffer"):n[i]=r;e.bodyBytes&&delete n.body,$task.fetch(n).then(i=>{let r={status:200,headers:{}};for(let[c,o]of Object.entries(i))c==="sessionIndex"?r.id=o:c==="bodyBytes"?r.bodyBytes=G.transferBodyBytes(o,"Uint8Array"):c==="statusCode"?r.status=o:r[c]=o;t(r)})})}done(e){let t=e.response??e,n={};for(let[i,r]of Object.entries(t))i==="status"?n.status=`HTTP/1.1 ${r}`:i==="bodyBytes"?n.bodyBytes=G.transferBodyBytes(r,"ArrayBuffer"):n[i]=r;$done(n)}},je=G;pe(je,"clientAdapter",{id:"sessionIndex",status:"statusCode"});var Cr=class extends we{decodeParams(e){if(typeof $argument<"u")for(let t of Object.keys(e)){let n=$argument?.[t];n!==void 0&&(e[t]=n)}return e}};var oc=g(h(),1),fe={config:"YouTubeConfig",advertiseInfo:"YouTubeAdvertiseInfo"},xr={music:"youtubeMusic",video:"youtube"};var F=K.getInstance("YouTube");function vi(){return(F.request.headers["user-agent"]??F.request.headers["User-Agent"]).includes("music")}function Wr(){return vi()?xr.music:xr.video}var pc=g(h(),1);function ai(){return F.decodeParams({captionLang:"off",blockUpload:!0,blockImmersive:!0,blockShorts:!1})}var gc=g(h(),1);var oi="1.0";function Gi(){return{whiteNo:[],blackNo:[],whiteEml:[],blackEml:["inline_injection_entrypoint_layout.eml"],dirty:!1}}function si(){let l=F.getJSON(fe.advertiseInfo);return l?.version!==oi?Gi():{whiteNo:l.whiteNo,blackNo:l.blackNo,whiteEml:l.whiteEml,blackEml:l.blackEml,dirty:!1}}function li(l){if(!l.dirty)return;let{whiteNo:e,blackNo:t,whiteEml:n,blackEml:i}=l,r={version:oi,whiteNo:e,blackNo:t,whiteEml:n,blackEml:i};F.setJSON(r,fe.advertiseInfo)}var wc=g(h(),1);function ci(){return F.getJSON(fe.config)??{}}function ui(l){F.debug(`saveKeyConfig: ${JSON.stringify(l)}`),F.setJSON(l,fe.config)}function Ki(){let l={adCache:si(),config:ci()},e=ii({url:F.request.url,bodyBytes:F.response.bodyBytes,state:l,params:ai(),platformKey:Wr()});if(e==null){F.msg("YouTube Enhance","\u811A\u672C\u9700\u8981\u66F4\u65B0","\u5916\u90E8\u8D44\u6E90 -> \u5168\u90E8\u66F4\u65B0"),F.exit();return}e.changed&&(li(e.state.adCache),ui(e.state.config)),e.action==="body"&&e.bodyBytes?F.done({bodyBytes:e.bodyBytes}):F.exit()}try{Ki()}catch(l){console.log(String(l)),F.exit()}})();
+function Tr(l,{state:e}){let a=Ir(l,e.adCache),b=SecAd(l);return{bodyChanged:a||b,stateChanged:e.adCache.dirty}}function Ai(l,{params:e}){return Br(l,e.captionLang),{bodyChanged:!0,stateChanged:!1}}function Di(l){let e=!1,t=l.entries?.length??0;for(let n=t-1;n>=0;n--)l.entries[n].command?.reelWatchEndpoint?.adClientParams?.isAd&&(l.entries.splice(n,1),e=!0);return{bodyChanged:e,stateChanged:!1}}function $i(l,{params:e}){let t=["SPunlimited"];e.blockUpload&&t.push("FEuploads"),e.blockImmersive&&t.push("FEmusic_immersive"),e.blockShorts&&t.push("FEshorts");let n=!1;return ce(l,"rendererItems",i=>{for(let r=i.rendererItems.length-1;r>=0;r--){let c=i.rendererItems[r]?.iconRender?.browseId??i.rendererItems[r]?.labelRender?.browseId;c&&t.includes(c)&&(i.rendererItems.splice(r,1),n=!0)}}),{bodyChanged:n,stateChanged:!1}}function ji(l){return ce(l.settingItems,"categoryId",e=>{e.categoryId===10135&&e.subSettings.push(Re.create({settingBooleanRenderer:{itemId:0,enableServiceEndpoint:{setClientSettingEndpoint:{settingData:{clientSettingEnum:{item:151},boolValue:!0}}},disableServiceEndpoint:{setClientSettingEndpoint:{settingData:{clientSettingEnum:{item:151},boolValue:!1}}}}}))}),l.settingItems.push(_.create({backgroundPlayBackSettingRenderer:{backgroundPlayback:!0,download:!0,downloadQualitySelection:!0,smartDownload:!0,icon:{iconType:1093}}})),{bodyChanged:!0,stateChanged:!1}}function Vi(l,{params:e,state:t}){for(let n of l.contents)n.player&&Br(n.player,e.captionLang),n.next&&Ir(n.next,t.adCache);return{bodyChanged:l.contents.length>0,stateChanged:t.adCache.dirty}}function ri(l,{state:e,platformKey:t}){let n=l.responseContext?.globalConfigGroup?.hotConfigGroup?.mediaHotConfig?.onesieHotConfig;if(!n)return{bodyChanged:!1,stateChanged:!1};let i=n.clientKey,r=n.encryptKey;if(!i?.length||!r?.length)return console.log("\u5F02\u5E38\uFF1AhotConfig \u672A\u5305\u542B\u5B8C\u6574\u7684 onesie key"),{bodyChanged:!1,stateChanged:!1};let c=Q(i),o=Q(r),s=e.config[t];return s?.clientKey===c&&s?.encryptKey===o?{bodyChanged:!1,stateChanged:!1}:(e.config[t]={clientKey:c,encryptKey:o},{bodyChanged:!1,stateChanged:!0})}var Mi=[{path:"browse",msgType:qr,handler:Tr},{path:"next",msgType:re,handler:Tr},{path:"player",msgType:oe,handler:Ai},{path:"search",msgType:Yr,handler:Tr},{path:"reel_watch_sequence",msgType:zr,handler:Di},{path:"guide",msgType:Zr,handler:$i},{path:"get_setting",msgType:Qr,handler:ji},{path:"get_watch",msgType:ei,handler:Vi},{path:"config",msgType:kr,handler:ri},{path:"log_event",msgType:kr,handler:ri}];// Home feed sponsor patch (2026-11-26).
+// Strict wire-format traversal: only remove a confirmed single-ad prominence
+// group. Preserve all other fields byte-for-byte; do not recursively scan
+// arbitrary byte strings or remove all field-32 groups.
+function HomeAdVarint(bytes, pos) {
+    let value = 0;
+    for (let i = 0; i < 5; i++) {
+        if (pos >= bytes.length) throw new Error("truncated protobuf varint");
+        const b = bytes[pos++];
+        value += (b & 127) * Math.pow(128, i);
+        if (!(b & 128)) {
+            if (value > 0xffffffff) throw new Error("protobuf uint32 overflow");
+            return [value, pos];
+        }
+    }
+    throw new Error("invalid protobuf uint32");
+}
+function HomeAdEncode(n) {
+    const out = [];
+    while (n >= 128) { out.push((n % 128) + 128); n = Math.floor(n / 128); }
+    out.push(n);
+    return new Uint8Array(out);
+}
+function HomeAdFields(bytes) {
+    const result = [];
+    let pos = 0;
+    while (pos < bytes.length) {
+        const start = pos;
+        const [tag, afterTag] = HomeAdVarint(bytes, pos);
+        pos = afterTag;
+        const no = Math.floor(tag / 8), wire = tag % 8;
+        if (!no) throw new Error("invalid protobuf field");
+        let dataStart = pos;
+        if (wire === 2) {
+            const [length, afterLength] = HomeAdVarint(bytes, pos);
+            dataStart = afterLength;
+            pos = dataStart + length;
+        } else if (wire === 0) {
+            let done = false;
+            for (let i = 0; i < 10 && pos < bytes.length; i++) {
+                if (!(bytes[pos++] & 128)) { done = true; break; }
+            }
+            if (!done) throw new Error("invalid protobuf varint64");
+        } else if (wire === 1) pos += 8;
+        else if (wire === 5) pos += 4;
+        else throw new Error("unsupported protobuf wire type");
+        if (pos > bytes.length) throw new Error("truncated protobuf field");
+        result.push({ no, wire, data: bytes.subarray(dataStart, pos), raw: bytes.subarray(start, pos) });
+    }
+    return result;
+}
+function HomeAdJoin(parts) {
+    const result = new Uint8Array(parts.reduce((n, b) => n + b.length, 0));
+    let pos = 0;
+    for (const b of parts) { result.set(b, pos); pos += b.length; }
+    return result;
+}
+function HomeAdPack(no, bytes) {
+    return HomeAdJoin([HomeAdEncode(no * 8 + 2), HomeAdEncode(bytes.length), bytes]);
+}
+function HomeAdOne(bytes, no, allowed) {
+    const fields = HomeAdFields(bytes);
+    if (allowed && fields.some(f => !allowed.includes(f.no) || f.wire !== 2)) return null;
+    const matches = fields.filter(f => f.no === no && f.wire === 2);
+    return matches.length === 1 ? matches[0].data : null;
+}
+function HomeAdHas(bytes, text) {
+    const pattern = new TextEncoder().encode(text);
+    outer: for (let i = 0; i <= bytes.length - pattern.length; i++) {
+        for (let j = 0; j < pattern.length; j++) if (bytes[i+j] !== pattern[j]) continue outer;
+        return true;
+    }
+    return false;
+}
+function HomeAdIdentify(group) {
+    // Observed: 32.1.6.1.50195462.1.153515154.172660663.1.168777401.5
+    // Restrict the outer wrappers to the single-card shape observed in captures.
+    let card = group;
+    const steps = [[1,[1]],[6,[6]],[1,[1,2]],[50195462,[50195462]],[1,[1,4]],
+        [153515154,[153515154]],[172660663,[3,5,172660663]],
+        [1,[1,2]],[168777401,[168777401]],[5,[3,5,6]]];
+    for (const [no, allowed] of steps) {
+        card = HomeAdOne(card, no, allowed);
+        if (!card) return 0;
+    }
+    const fields = HomeAdFields(card);
+    if (fields.length !== 1 || fields[0].wire !== 2) return 0;
+    const ad = fields[0];
+    const layout = ad.no === 491441836 ? "video_display_button_group_layout.eml-fe" :
+                   ad.no === 33562350 ? "full_width_square_image_carousel_layout.eml-fe" : null;
+    if (!layout || !HomeAdHas(group, layout) || !HomeAdHas(group, "home_vertical_feed_prominence_group_key")) return 0;
+    if (!HomeAdHas(ad.data, "pagead")) return 0;
+    const labelPath = ad.no === 491441836 ? [19,8,8,1] : [5,5,8,1];
+    // The label path can contain repeated fields; inspect each exact path.
+    function hasLabel(bytes, depth) {
+        for (const field of HomeAdFields(bytes)) {
+            if (field.no !== labelPath[depth] || field.wire !== 2) continue;
+            if (depth + 1 === labelPath.length) {
+                const label = new TextDecoder("utf-8").decode(field.data).trim();
+                if (SP_RE.test(label)) return true;
+            } else if (hasLabel(field.data, depth + 1)) return true;
+        }
+        return false;
+    }
+    return hasLabel(ad.data, 0) ? ad.no : 0;
+}
+function HomeAdStrip(bytes) {
+    const original = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    const removed = [];
+    // Only the verified browse response path: 10.49399797.32.
+    function visit(data, depth) {
+        const target = [10,49399797,32][depth];
+        const parts = [];
+        let changed = false;
+        for (const field of HomeAdFields(data)) {
+            if (field.no !== target || field.wire !== 2) { parts.push(field.raw); continue; }
+            if (depth === 2) {
+                let adNo = 0;
+                try { adNo = HomeAdIdentify(field.data); } catch (_) {}
+                if (adNo) { removed.push(adNo); changed = true; continue; }
+            } else {
+                const child = visit(field.data, depth + 1);
+                if (child !== field.data) { parts.push(HomeAdPack(field.no, child)); changed = true; continue; }
+            }
+            parts.push(field.raw);
+        }
+        return changed ? HomeAdJoin(parts) : data;
+    }
+    try {
+        const result = visit(original, 0);
+        if (removed.length) console.log("[home-sponsor] removed " + removed.join(","));
+        return { bytes: result, changed: removed.length > 0 };
+    } catch (error) {
+        console.log("[home-sponsor] skipped: " + String(error));
+        return { bytes: original, changed: false };
+    }
+}
+function ii(l) {
+    if (!/\/youtubei\/v1\/browse(?:\?|$)/.test(l.url) || l.bodyBytes == null) return iiOriginal(l);
+    const patch = HomeAdStrip(l.bodyBytes);
+    if (!patch.changed) return iiOriginal(l);
+    try {
+        const result = iiOriginal({...l, bodyBytes: patch.bytes});
+        if (result && result.action === "body") return result;
+        return { ...result, action: "body", bodyBytes: patch.bytes, state: l.state, changed: !!result?.changed };
+    } catch (error) {
+        console.log("[home-sponsor] original handler skipped: " + String(error));
+        return { action: "body", bodyBytes: patch.bytes, state: l.state, changed: false };
+    }
+}
+
+function iiOriginal(l){let e=Mi.find(r=>l.url.includes(r.path));if(!e)return null;if(l.bodyBytes==null)return{action:"exit",state:l.state,changed:!1};let t=e.msgType.fromBinary(l.bodyBytes),{bodyChanged:n,stateChanged:i}=e.handler(t,{params:l.params,state:l.state,platformKey:l.platformKey});return{action:n?"body":"exit",bodyBytes:n?e.msgType.toBinary(t):void 0,state:l.state,changed:i}}var uc=g(h(),1);var rc=g(h(),1);var ue=class{_times=new Map;name;isDebug;className;request;response;constructor(e,t,n){this.name=e??"",this.isDebug=n?.debug??!1,e&&this.debug(`${e} Start`),this.className=t??"",this.init()}static getInstance(e,t){let n="Surge";return typeof $loon<"u"?n="Loon":typeof $task<"u"&&(n="QuanX"),ue.instances[n]||(ue.instances[n]=ue.classNames[n](e,n,t)),ue.instances[n]}createProxy(e){return new Proxy(e,{get:this.getFn,set:this.setFn})}getFn(e,t,n){return e[t]}setFn(e,t,n,i){return e[t]=n,!0}getJSON(e,t={}){let n=this.getVal(e);return n?JSON.parse(n):t}setJSON(e,t){this.setVal(JSON.stringify(e),t)}msg(e=this.name,t="",n="",i){}debug(e){this.isDebug&&(typeof e=="object"&&(e=JSON.stringify(e)),console.log(e))}log(e){typeof e=="object"&&(e=JSON.stringify(e)),console.log(e)}timeStart(e){this._times.set(e,Date.now())}timeEnd(e){if(this._times.has(e)){let t=this._times.get(e)??0,n=Date.now()-t;this.debug(`${e}: ${n}ms`),this._times.delete(e)}else this.debug(`Timer with label ${e} does not exist.`)}exit(){$done({})}reject(){$done()}decodeParams(e){return e}},K=ue;pe(K,"instances",{}),pe(K,"classNames",{QuanX:(e,t,n)=>new je(e,t,n),Surge:(e,t,n)=>new we(e,t,n),Loon:(e,t,n)=>new Cr(e,t,n)});var Ve=class extends K{getFn(e,t,n){let i=Ve.clientAdapter[t]||t;return super.getFn(e,i,n)}setFn(e,t,n,i){let r=Ve.clientAdapter[t]||t;return super.setFn(e,r,n,i)}init(){try{this.request=this.createProxy($request),this.response=this.createProxy($response)}catch(e){this.debug(e.toString())}}getVal(e){return $persistentStore.read(e)}setVal(e,t){$persistentStore.write(e,t)}msg(e=this.name,t="",n="",i){let r={};i&&(r={action:{"open-url":i}}),$notification.post(e,t,n,r)}async fetch(e){return await new Promise((t,n)=>{let{method:i,body:r,bodyBytes:c,...o}=e,s=c??r,a=s instanceof Uint8Array;$httpClient[i.toLowerCase()]({...o,body:s,"binary-mode":a},(u,B,w)=>{u&&n(u);let b=a?"bodyBytes":"body";t({status:B.status??B.statusCode,headers:B.headers,[b]:w})})})}done(e){let t=e.response??e;t.bodyBytes&&(t.body=t.bodyBytes,delete t.bodyBytes),$done(e.response?{response:t}:t)}decodeParams(e){return typeof $argument=="string"&&!$argument.includes("{{{")&&Object.assign(e,JSON.parse($argument)),e}},we=Ve;pe(we,"clientAdapter",{bodyBytes:"body"});var G=class extends K{static transferBodyBytes(e,t){return e instanceof ArrayBuffer?t==="Uint8Array"?new Uint8Array(e):e:e instanceof Uint8Array&&t==="ArrayBuffer"?e.buffer.slice(e.byteOffset,e.byteLength+e.byteOffset):e}init(){try{this.request=this.createProxy($request),this.response=this.createProxy($response)}catch(e){this.debug(e.toString())}}getFn(e,t,n){let i=G.clientAdapter[t]||t,r=super.getFn(e,i,n);return t==="bodyBytes"&&(r=G.transferBodyBytes(r,"Uint8Array")),r}setFn(e,t,n,i){let r=G.clientAdapter[t]||t,c=n;return t==="bodyBytes"&&(c=G.transferBodyBytes(c,"Uint8Array")),super.setFn(e,r,c,i)}getVal(e){return $prefs.valueForKey(e)}setVal(e,t){$prefs.setValueForKey(e,t)}msg(e=this.name,t="",n="",i){$notify(e,t,n,{"open-url":i??""})}async fetch(e){return await new Promise(t=>{let n={url:"",method:"GET"};for(let[i,r]of Object.entries(e))i==="id"?n.sessionIndex=r:i==="bodyBytes"?n.bodyBytes=G.transferBodyBytes(r,"ArrayBuffer"):n[i]=r;e.bodyBytes&&delete n.body,$task.fetch(n).then(i=>{let r={status:200,headers:{}};for(let[c,o]of Object.entries(i))c==="sessionIndex"?r.id=o:c==="bodyBytes"?r.bodyBytes=G.transferBodyBytes(o,"Uint8Array"):c==="statusCode"?r.status=o:r[c]=o;t(r)})})}done(e){let t=e.response??e,n={};for(let[i,r]of Object.entries(t))i==="status"?n.status=`HTTP/1.1 ${r}`:i==="bodyBytes"?n.bodyBytes=G.transferBodyBytes(r,"ArrayBuffer"):n[i]=r;$done(n)}},je=G;pe(je,"clientAdapter",{id:"sessionIndex",status:"statusCode"});var Cr=class extends we{decodeParams(e){if(typeof $argument<"u")for(let t of Object.keys(e)){let n=$argument?.[t];n!==void 0&&(e[t]=n)}return e}};var oc=g(h(),1),fe={config:"YouTubeConfig",advertiseInfo:"YouTubeAdvertiseInfo"},xr={music:"youtubeMusic",video:"youtube"};var F=K.getInstance("YouTube");function vi(){return(F.request.headers["user-agent"]??F.request.headers["User-Agent"]).includes("music")}function Wr(){return vi()?xr.music:xr.video}var pc=g(h(),1);function ai(){return F.decodeParams({captionLang:"off",blockUpload:!0,blockImmersive:!0,blockShorts:!1})}var gc=g(h(),1);var oi="1.0";function Gi(){return{whiteNo:[],blackNo:[],whiteEml:[],blackEml:["inline_injection_entrypoint_layout.eml"],dirty:!1}}function si(){let l=F.getJSON(fe.advertiseInfo);return l?.version!==oi?Gi():{whiteNo:l.whiteNo,blackNo:l.blackNo,whiteEml:l.whiteEml,blackEml:l.blackEml,dirty:!1}}function li(l){if(!l.dirty)return;let{whiteNo:e,blackNo:t,whiteEml:n,blackEml:i}=l,r={version:oi,whiteNo:e,blackNo:t,whiteEml:n,blackEml:i};F.setJSON(r,fe.advertiseInfo)}var wc=g(h(),1);function ci(){return F.getJSON(fe.config)??{}}function ui(l){F.debug(`saveKeyConfig: ${JSON.stringify(l)}`),F.setJSON(l,fe.config)}function Ki(){let l={adCache:si(),config:ci()},e=ii({url:F.request.url,bodyBytes:F.response.bodyBytes,state:l,params:ai(),platformKey:Wr()});if(e==null){F.msg("YouTube Enhance","\u811A\u672C\u9700\u8981\u66F4\u65B0","\u5916\u90E8\u8D44\u6E90 -> \u5168\u90E8\u66F4\u65B0"),F.exit();return}e.changed&&(li(e.state.adCache),ui(e.state.config)),e.action==="body"&&e.bodyBytes?F.done({bodyBytes:e.bodyBytes}):F.exit()}try{Ki()}catch(l){console.log(String(l)),F.exit()}})();
